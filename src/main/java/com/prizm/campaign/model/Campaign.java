@@ -1,5 +1,6 @@
 package com.prizm.campaign.model;
 
+import com.prizm.campaign.config.CampaignDefaults;
 import jakarta.persistence.*;
 
 @Entity
@@ -21,7 +22,7 @@ public class Campaign {
     private int remainingStock;
 
     @Column(name = "per_user_limit")
-    private int perUserLimit = 2;
+    private int perUserLimit = CampaignDefaults.PER_USER_LIMIT;
 
     private boolean active;
 
