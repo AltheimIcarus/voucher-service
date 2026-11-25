@@ -1,6 +1,8 @@
 package com.prizm.campaign.model;
 
+import com.prizm.campaign.config.CampaignDefaults;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 
 @Entity
 @Table(name = "campaign")
@@ -20,6 +22,10 @@ public class Campaign {
     @Column(name = "remaining_stock")
     private int remainingStock;
 
+    @Column(name = "per_user_limit", nullable = false)
+    @Min(1)
+    private int perUserLimit = CampaignDefaults.PER_USER_LIMIT;
+
     private boolean active;
 
     public Long getId() { return id; }
@@ -32,6 +38,8 @@ public class Campaign {
     public void setTotalStock(int totalStock) { this.totalStock = totalStock; }
     public int getRemainingStock() { return remainingStock; }
     public void setRemainingStock(int remainingStock) { this.remainingStock = remainingStock; }
+    public int getPerUserLimit() { return perUserLimit; }
+    public void setPerUserLimit(int perUserLimit) { this.perUserLimit = perUserLimit; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
 }

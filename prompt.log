@@ -1,0 +1,302 @@
+User: analyze the doc, identify the shortest reasonable way to implement the task
+
+Copilot: I’ll map the brief against the existing project shape, then give the smallest implementation plan that should satisfy it.
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\BRIEF.md"
+}
+
+Find files matching `**/*`
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\README.md"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\model\\Campaign.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\model\\Redemption.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\service\\VoucherService.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\repository\\RedemptionRepository.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\resources\\schema.sql"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\controller\\VoucherController.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\test\\java\\com\\prizm\\campaign\\VoucherServiceTest.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\resources\\data.sql"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\controller\\CampaignController.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\repository\\CampaignRepository.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\dto\\RedeemResponse.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\build.gradle"
+}
+
+## Shortest reasonable implementation
+
+1. Add `per_user_limit` to the campaign table with default `2`, and expose it on `Campaign.java`.
+   - Use Java field `maxRedemptionsPerUser` or `perUserLimit`.
+   - Update `schema.sql` and `data.sql`.
+
+2. Add a count method to `RedemptionRepository.java`:
+   - `countByCampaignIdAndUserId(Long campaignId, String userId)`
+
+3. In `VoucherService.java`, after validating the voucher and campaign but before changing any stock/status:
+   - Count existing successful redemption records.
+   - If the count is already at or above the campaign limit, return `FAILED` with a clear message such as `"Per-user redemption limit reached"`.
+
+4. Add two focused tests:
+   - A new user can redeem up to the configured limit.
+   - The next attempt for that user fails.
+
+No controller or DTO changes are necessary unless campaign limits must be configurable through HTTP. The exercise does not define a campaign creation/update API, so storing the setting in the existing campaign data model is the proportionate approach.
+
+## Important edge detail
+
+The seed data gives `user-99` two redemption rows in campaign 1, including one whose voucher is marked `VOID`. If “redemption limit” counts completed redemptions, both `data.sql` rows likely should count for the simple repository method. A more precise implementation should count `redemption` records only and not infer state from vouchers.
+
+## Deliberately defer
+
+- Database-level concurrency locking/distributed enforcement.
+- HTTP endpoint for changing campaign limits.
+- Replacing H2 or adding persistent shared state.
+- Refactoring the existing audit or stock behavior.
+
+The main implementation should remain small: **one campaign column, one count query, one guard in the redemption service, and two tests**.
+
+User: /pstack:architect implement as stated in doc, provides 3 alternatives to choose from
+
+Copilot: Read skill `architect`
+Completed with input: {"skill":"architect"}
+
+"Read" failed
+Completed with input: {
+  "path": "c:\\Users\\Lazarius\\.copilot\\installed-plugins\\cursor-plugins\\pstack\\skills\\docs\\harness\\claude-code.md"
+}
+Tool execution failed: Path does not exist
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\model\\Voucher.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\repository\\VoucherRepository.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\service\\CampaignStatsService.java"
+}
+
+Ask User
+Completed with input: {
+  "message": "Which implementation shape should I use?",
+  "requestedSchema": {
+    "properties": {
+      "shape": {
+        "type": "string",
+        "title": "Implementation alternative",
+        "oneOf": [
+          {
+            "const": "redemption-count",
+            "title": "A — Redemption count (recommended): existing Redemption rows are the source of truth; add campaign limit and count campaign+user under a transactional pessimistic campaign lock."
+          },
+          {
+            "const": "voucher-count",
+            "title": "B — Voucher ownership count: derive the limit by counting each campaign voucher whose redeemedBy equals the user; no new redemption query, but the voucher table becomes enforcement state too."
+          },
+          {
+            "const": "counter-table",
+            "title": "C — Dedicated per-user counter: add campaign_id + user_id + redemption_count and increment atomically; faster reads but another owner of redemption state and new synchronization complexity."
+          }
+        ],
+        "default": "redemption-count"
+      }
+    }
+  }
+}
+
+I’m implementing alternative A: existing redemption records remain authoritative, while a campaign-row lock makes the count-and-write operation atomic within the database.
+
+Edit , , , , , 
+
+Ran terminal command: .\gradlew.bat test
+Tool execution failed with exit code 1
+
+The first test run hit an environment-level Gradle/JDK mismatch, so I’m checking the active Java runtime and Gradle JVM configuration before changing project code.
+
+Ran terminal command: java -version; Get-Command java | Format-List Source; $env:JAVA_HOME
+
+Find files matching `gradle.properties`
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\gradle\\wrapper\\gradle-wrapper.properties"
+}
+
+Ran terminal command: Get-ChildItem 'C:\Program Files\Java','C:\Program Files (x86)\Java' -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+
+Ran terminal command: .\gradlew.bat --version
+
+No Java 17+ JDK is currently active. I’m installing a local Temurin 17 JDK, then I’ll rerun the project tests with an explicit `JAVA_HOME`.
+
+Ran terminal command: winget install --id EclipseAdoptium.Temurin.17.JDK --exact --accept-package-agreements --accept-source-agreements
+
+Read Terminal
+Completed with input: {
+  "shellId": "4",
+  "delay": 120
+}
+
+Ran terminal command: $jdk = Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName; if (-not $jdk) { throw 'Java 17 JDK was not found' }; $env:JAVA_HOME=$jdk; $env:Path="$jdk\bin;$env:Path"; Set-Location 'G:\Downloads\interview\Prizm\voucher-service-takehome\voucher-service'; java -version; .\gradlew.bat test
+
+Edit 
+
+Ran terminal command: $jdk = Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName; $env:JAVA_HOME=$jdk; $env:Path="$jdk\bin;$env:Path"; Set-Location 'G:\Downloads\interview\Prizm\voucher-service-takehome\voucher-service'; .\gradlew.bat test
+
+Implemented alternative A using redemption records as the source of truth.
+
+### Changed
+- Added `per_user_limit` to the campaign schema and seed data in `schema.sql` and `data.sql`.
+- Added the campaign limit field and getter/setter in `Campaign.java`.
+- Added campaign and user redemption counting in `RedemptionRepository.java`.
+- Added transactional campaign locking and the limit check in `VoucherService.java`.
+- Added seed-history and two-redemption limit tests in `VoucherServiceTest.java`.
+
+### Verification
+`./gradlew.bat test` passes with Java 17.
+
+User: /pstack:correct 
+
+Copilot: Read skill `correct`
+Completed with input: {"skill":"correct"}
+
+I’m tracing repository guidance and change history, then will fix repeated mistake classes at the highest enforceable level rather than adding commentary-only rules.
+
+Find files matching `**/{AGENTS.md,.github/copilot-instructions.md,CLAUDE.md,*INSTRUCTIONS*.md,*in...`
+
+Find files matching `**/{README.md,NOTES.md,.gitignore,*test*.java,*Test*.java}`
+
+Search for `TODO|FIXME|workaround|legacy|deprecated|must|do not|don't|single source|sourc...`
+
+Ran terminal command: Set-Location 'G:\Downloads\interview\Prizm\voucher-service-takehome\voucher-service'; git --no-pager status --short; git --no-pager log -5 --oneline 2>$null
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\config\\CampaignDefaults.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\NOTES.md"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\model\\Campaign.java"
+}
+
+Ran terminal command: git --no-pager show --stat --oneline 72637aa; git --no-pager show --stat --oneline fdd7040; git --no-pager show --stat --oneline 060e931
+
+Search for `PER_USER_LIMIT|perUserLimit|per_user_limit|countByCampaignIdAndUserId|PESSIMI...`
+
+Ran terminal command: Set-Location 'G:\Downloads\interview\Prizm\voucher-service-takehome\voucher-service'; git --no-pager diff; git --no-pager diff --cached
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\service\\VoucherService.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\test\\java\\com\\prizm\\campaign\\VoucherServiceTest.java"
+}
+
+Read 
+Completed with input: {
+  "path": "G:\\Downloads\\interview\\Prizm\\voucher-service-takehome\\voucher-service\\src\\main\\java\\com\\prizm\\campaign\\repository\\RedemptionRepository.java"
+}
+
+The repeatable risk I found is policy drift: the limit default appears in Java and database files, and campaign limits can be written without a positive-value invariant. I’m moving enforcement to database/entity boundaries and adding a test that catches drift.
+
+Edit , , , 
+
+Ran terminal command: $jdk = Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName; $env:JAVA_HOME=$jdk; $env:Path="$jdk\bin;$env:Path"; Set-Location 'G:\Downloads\interview\Prizm\voucher-service-takehome\voucher-service'; .\gradlew.bat test
+Tool execution failed with exit code 1
+
+The positive-limit guard is working; the test exposed that Bean Validation fires before the database constraint, which is the desired earlier failure. I’m aligning the assertion with that boundary and rerunning.
+
+Edit 
+
+Ran terminal command: $jdk = Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-17*' | Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName; $env:JAVA_HOME=$jdk; $env:Path="$jdk\bin;$env:Path"; Set-Location 'G:\Downloads\interview\Prizm\voucher-service-takehome\voucher-service'; .\gradlew.bat test
+
+Ran terminal command: git --no-pager diff --stat; git add src/main/resources/schema.sql src/main/resources/data.sql src/main/java/com/prizm/campaign/model/Campaign.java src/test/java/com/prizm/campaign/VoucherServiceTest.java; git diff --cached --stat; git -c user.name='Copilot' -c user.email='[223556219+Copilot@users.noreply.github.com](mailto:223556219+Copilot@users.noreply.github.com)' commit -m $'FIX(campaign): enforce valid per-user limits\n\nCo-authored-by: Copilot [223556219+Copilot@users.noreply.github.com](mailto:223556219+Copilot@users.noreply.github.com)'
+
+I’ve enforced the invariant and recorded it in a commit. Before finishing, I’m adding CI parity and an agent rule table so the test isolation and limit invariants are also visible to future contributors.
+
+Edit , 
+
+Ran terminal command: git add .github/workflows/ci.yml AGENTS.md; git -c user.name='Copilot' -c user.email='[223556219+Copilot@users.noreply.github.com](mailto:223556219+Copilot@users.noreply.github.com)' commit -m "CHORE(ci): run tests and document repository rules" -m "Co-authored-by: Copilot [223556219+Copilot@users.noreply.github.com](mailto:223556219+Copilot@users.noreply.github.com)"; git --no-pager status --short
+
+## Mistake class: policy drift / invalid campaign state
+
+**Evidence**
+- The limit appeared in Java defaults, SQL defaults, and seed data.
+- A campaign could previously be set to zero or a negative limit.
+
+**Fix level**
+- **Types + database constraints:** added `@Min(1)` and a SQL `CHECK`.
+- **Test isolation:** made persistence tests transactional.
+- **Test behavior:** added default, custom-limit, non-positive-limit, and seeded-history coverage.
+- **CI + agent rules:** added Gradle test CI and `AGENTS.md`.
+- Removed explicit limit values from seed inserts, leaving the database default as the existing-campaign source.
+
+A higher-level shared configuration was not practical because JPA initialization and H2 DDL are separate runtime/configuration layers. The invariant is now enforced at both boundaries and checked by tests.
+
+## Commits
+- `b1bab59` — limit validation and invariant tests
+- `83aa0bc` — CI and repository rules
