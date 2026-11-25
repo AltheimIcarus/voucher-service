@@ -31,4 +31,21 @@ class VoucherServiceTest {
         RedeemResponse res = voucherService.redeem("NOPE-9999", "user-3");
         assertEquals("FAILED", res.getResult());
     }
+
+    @Test
+    void redeemRejectsUserAtPerUserLimit() {
+        assertEquals("OK", voucherService.redeem("RAYA-0002", "limit-user").getResult());
+        assertEquals("OK", voucherService.redeem("RAYA-0006", "limit-user").getResult());
+
+        RedeemResponse res = voucherService.redeem("RAYA-0003", "limit-user");
+        assertEquals("FAILED", res.getResult());
+        assertEquals("Per-user redemption limit reached", res.getMessage());
+    }
+
+    @Test
+    void seededRedemptionsCountTowardPerUserLimit() {
+        RedeemResponse res = voucherService.redeem("RAYA-0001", "user-99");
+        assertEquals("FAILED", res.getResult());
+        assertEquals("Per-user redemption limit reached", res.getMessage());
+    }
 }
