@@ -8,7 +8,7 @@ CREATE TABLE campaign (
     client_code     VARCHAR(50)  NOT NULL,
     total_stock     INT          NOT NULL,
     remaining_stock INT          NOT NULL,
-    per_user_limit  INT          NOT NULL DEFAULT 2,
+    per_user_limit  INT          NOT NULL DEFAULT 2 CHECK (per_user_limit > 0),
     active          BOOLEAN      NOT NULL DEFAULT TRUE
 );
 
@@ -28,3 +28,6 @@ CREATE TABLE redemption (
     user_id     VARCHAR(80) NOT NULL,
     created_at  TIMESTAMP   NOT NULL
 );
+
+CREATE INDEX idx_redemption_campaign_user
+    ON redemption (campaign_id, user_id);
