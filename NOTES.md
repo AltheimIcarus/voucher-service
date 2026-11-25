@@ -1,5 +1,8 @@
 # Notes
 
+## 1. Prompt Log
+- Attached in `./prompt.log`
+
 ## 2.1 What changed and why
 
 - Added `CampaignDefaults` with `PER_USER_LIMIT` constant for the `perUserLimit` default in `Campaign`.
